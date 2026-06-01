@@ -99,32 +99,44 @@ class OllamaClient:
         raise Exception(f"API Error: {last_error}\nDebug: {debug_message}")
 
     def health_check(self) -> Dict[str, Any]:
-        """Perform health checks on base URL, tags endpoint, and test model availability.
+        """Perform health checks on base URL, tags endpoint, and test actual generation.
 
-        Returns a dict with results for: root, /api/tags, and model list (if available).
+        Returns a dict with results for: root, /api/tags, and a test generation attempt.
         """
         results: Dict[str, Any] = {}
+        
         # check root
         try:
             r = requests.get(self.base_url, timeout=5)
-            results["root"] = {"status_code": r.status_code, "text": r.text[:1000]}
+            results["root"] = {"status_code": r.status_code}
         except Exception as e:
             results["root"] = {"error": str(e)}
+            return results  # If root fails, don't continue
 
         # check tags
         try:
             url = self._full_url("/api/tags")
             r = requests.get(url, timeout=5)
-            results["tags"] = {"status_code": r.status_code, "body": r.text[:2000]}
+            results["tags"] = {"status_code": r.status_code}
         except Exception as e:
             results["tags"] = {"error": str(e)}
 
-        # list models via API if possible
+        # Test actual generation (most important check)
         try:
-            models = self.list_models()
-            results["models"] = models
+            payload = {
+                "model": self.model,
+                "prompt": "test",
+                "stream": False,
+            }
+            url = self._full_url("/api/generate")
+            r = requests.post(url, json=payload, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                results["generate"] = {"status_code": 200, "model": self.model}
+            else:
+                results["generate"] = {"status_code": r.status_code, "error": r.text[:500]}
         except Exception as e:
-            results["models"] = {"error": str(e)}
+            results["generate"] = {"error": str(e)}
 
         return results
 

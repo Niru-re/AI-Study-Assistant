@@ -83,6 +83,15 @@ def check_llm_connection() -> dict:
         }
     try:
         results = client.health_check()
+        # For Ollama, check if generate test passed
+        if "generate" in results:
+            if "error" in results["generate"]:
+                return {
+                    "ok": False,
+                    "error": f"Ollama generation test failed: {results['generate']['error']}",
+                    "provider": "ollama",
+                    "results": results,
+                }
         return {"ok": True, "results": results, "provider": os.environ.get("LLM_PROVIDER", "ollama")}
     except Exception as e:
         return {"ok": False, "error": str(e), "provider": os.environ.get("LLM_PROVIDER", "ollama")}
@@ -311,11 +320,14 @@ def main() -> None:
         conn = check_llm_connection()
         provider = conn.get("provider", "unknown").upper()
         if conn.get("ok"):
-            st.write(f"<div class='sidebar-status success'>✓ {provider} Connected</div>", unsafe_allow_html=True)
+            st.write(f"<div class='sidebar-status success'>✓ {provider} Ready</div>", unsafe_allow_html=True)
         else:
-            st.write(f"<div class='sidebar-status warning'>✗ {provider} Not Configured</div>", unsafe_allow_html=True)
-            with st.expander("Setup guide"):
-                st.info("Click 'Setup Required' tab to configure an LLM provider.")
+            st.write(f"<div class='sidebar-status warning'>✗ {provider} Not Ready</div>", unsafe_allow_html=True)
+            with st.expander("Debug info"):
+                error_msg = conn.get("error", "Unknown error")
+                st.error(error_msg)
+                if "Ollama" in error_msg.upper():
+                    st.info("💡 Ollama not running. Start it with: `ollama run mistral`")
 
         st.markdown(f"<div class='sidebar-meta'>Provider: <strong>{provider}</strong></div>", unsafe_allow_html=True)
 
