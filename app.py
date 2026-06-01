@@ -5,17 +5,19 @@ A Streamlit-based application that uses Ollama and Mistral to help students
 with note summarization, quiz generation, flashcard creation, and topic explanation.
 """
 
+import os
 import streamlit as st
 from pathlib import Path
 import logging
 from typing import Optional
+from utils.llm_factory import BaseLLMClient
 import sys
 
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from utils.ollama_client import OllamaClient
+from utils.llm_factory import get_llm_client, BaseLLMClient
 from modules.summarizer import Summarizer
 from modules.quiz_generator import QuizGenerator
 from modules.flashcard_generator import FlashcardGenerator
@@ -48,10 +50,14 @@ def load_css() -> None:
 load_css()
 
 
+def _is_streamlit_cloud() -> bool:
+    """Check if running on Streamlit Cloud."""
+    return os.environ.get("STREAMLIT_SERVER_HEADLESS") == "true" and os.environ.get("STREAMLIT_SERVER_RUN_ON_SAVE") is None
+
 @st.cache_resource
-def get_ollama_client() -> OllamaClient:
-    """Get cached Ollama client instance."""
-    return OllamaClient(model="mistral:latest")
+def get_llm_client_cached() -> Optional[BaseLLMClient]:
+    """Get cached LLM client instance."""
+    return get_llm_client()
 
 
 @st.cache_resource
@@ -66,14 +72,20 @@ def load_prompt_template(prompt_file: str) -> str:
         raise st.error(f"Prompt template not found: {prompt_file}")
 
 
-def check_ollama_connection() -> dict:
-    """Run detailed health checks and return a dict of results."""
-    client = get_ollama_client()
+def check_llm_connection() -> dict:
+    """Run health checks on LLM client."""
+    client = get_llm_client_cached()
+    if client is None:
+        return {
+            "ok": False,
+            "error": "No LLM provider configured. Please set up Streamlit secrets or environment variables.",
+            "provider": None,
+        }
     try:
         results = client.health_check()
-        return {"ok": True, "results": results}
+        return {"ok": True, "results": results, "provider": os.environ.get("LLM_PROVIDER", "ollama")}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": str(e), "provider": os.environ.get("LLM_PROVIDER", "ollama")}
 
 
 def display_summary_results(result: dict) -> None:
@@ -203,10 +215,73 @@ def display_explanation_results(result: dict) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def show_setup_required() -> None:
+    """Show setup instructions when LLM is not configured."""
+    st.markdown("<div class='glass-panel'>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='section-header'>
+      <h2>⚙️ Setup Required</h2>
+      <p class='muted'>No LLM provider configured. Please set up one of the following:</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### Option 1: Groq (Recommended - Free & Fast)")
+    st.markdown("""
+    1. Go to https://console.groq.com/keys
+    2. Create a free account and get your API key
+    3. On Streamlit Cloud:
+       - Go to **Settings → Secrets**
+       - Add:
+         ```
+         LLM_PROVIDER = "groq"
+         GROQ_API_KEY = "your-api-key"
+         GROQ_MODEL = "mixtral-8x7b-32768"
+         ```
+    4. Rerun the app
+    """)
+
+    st.markdown("### Option 2: Local Ollama (Requires local deployment)")
+    st.markdown("""
+    1. Install Ollama: https://ollama.ai
+    2. Run: `ollama run mistral`
+    3. Set environment variables:
+       ```
+       LLM_PROVIDER=ollama
+       OLLAMA_BASE_URL=http://localhost:11434
+       OLLAMA_MODEL=mistral:latest
+       ```
+    4. Run locally: `streamlit run app.py`
+    """)
+
+    st.markdown("### Option 3: OpenAI")
+    st.markdown("""
+    1. Get API key from https://platform.openai.com/account/api-keys
+    2. Add to Streamlit Secrets:
+       ```
+       LLM_PROVIDER = "openai"
+       OPENAI_API_KEY = "your-api-key"
+       OPENAI_MODEL = "gpt-4-turbo"
+       ```
+    """)
+
+    st.markdown("### Option 4: Anthropic Claude")
+    st.markdown("""
+    1. Get API key from https://console.anthropic.com/
+    2. Add to Streamlit Secrets:
+       ```
+       LLM_PROVIDER = "anthropic"
+       ANTHROPIC_API_KEY = "your-api-key"
+       ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
+       ```
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def main() -> None:
     """Modern dashboard-style main application function."""
 
-    client = get_ollama_client()
+    client = get_llm_client_cached()
     load_css()
 
     st.markdown("<div class='orb orb-one'></div><div class='orb orb-two'></div>", unsafe_allow_html=True)
@@ -233,15 +308,16 @@ def main() -> None:
         ], index=0)
 
         st.markdown("---")
-        conn = check_ollama_connection()
+        conn = check_llm_connection()
+        provider = conn.get("provider", "unknown").upper()
         if conn.get("ok"):
-            st.write("<div class='sidebar-status success'>Connected to Ollama</div>", unsafe_allow_html=True)
+            st.write(f"<div class='sidebar-status success'>✓ {provider} Connected</div>", unsafe_allow_html=True)
         else:
-            st.write("<div class='sidebar-status warning'>Ollama unavailable</div>", unsafe_allow_html=True)
-            with st.expander("Debug details"):
-                st.write(conn.get("error"))
+            st.write(f"<div class='sidebar-status warning'>✗ {provider} Not Configured</div>", unsafe_allow_html=True)
+            with st.expander("Setup guide"):
+                st.info("Click 'Setup Required' tab to configure an LLM provider.")
 
-        st.markdown("<div class='sidebar-meta'>Model: <strong>mistral:latest</strong></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='sidebar-meta'>Provider: <strong>{provider}</strong></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='page-shell'>", unsafe_allow_html=True)
 
@@ -249,6 +325,9 @@ def main() -> None:
     st.markdown("<div class='hero-panel'><div><h1>AI Study Assistant</h1><p class='muted'>Premium glassmorphism learning workspace with AI-powered study tools.</p></div><div class='hero-pill'>Live • <span>mistral:latest</span></div></div>", unsafe_allow_html=True)
 
     if feature == "Notes Summarizer":
+        if client is None:
+            show_setup_required()
+            return
         st.markdown("<div class='section-header'><h2>Notes Summarizer</h2><p class='muted'>Paste your notes and generate crisp summaries instantly.</p></div>", unsafe_allow_html=True)
         notes_input = st.text_area("", height=320, placeholder="Paste your study notes here...")
         if st.button("Generate Summary", key="summarize"):
@@ -265,6 +344,9 @@ def main() -> None:
                         st.error(str(e))
 
     elif feature == "Quiz Generator":
+        if client is None:
+            show_setup_required()
+            return
         st.markdown("<div class='section-header'><h2>Quiz Generator</h2><p class='muted'>Turn your notes into multiple-choice questions for active recall.</p></div>", unsafe_allow_html=True)
         notes_input = st.text_area("", height=320, placeholder="Paste your study notes here...")
         if st.button("Generate Quiz", key="quiz"):
@@ -281,6 +363,9 @@ def main() -> None:
                         st.error(str(e))
 
     elif feature == "Flashcard Generator":
+        if client is None:
+            show_setup_required()
+            return
         st.markdown("<div class='section-header'><h2>Flashcard Generator</h2><p class='muted'>Build flashcards from your notes for faster review.</p></div>", unsafe_allow_html=True)
         notes_input = st.text_area("", height=320, placeholder="Paste your study notes here...")
         if st.button("Generate Flashcards", key="flashcards"):
@@ -297,6 +382,9 @@ def main() -> None:
                         st.error(str(e))
 
     elif feature == "Topic Explainer":
+        if client is None:
+            show_setup_required()
+            return
         st.markdown("<div class='section-header'><h2>Topic Explainer</h2><p class='muted'>Ask a topic and get a clear, structured explanation.</p></div>", unsafe_allow_html=True)
         topic_input = st.text_input("", placeholder="e.g. Quantum Entanglement")
         if st.button("Explain Topic", key="explain"):
@@ -316,7 +404,6 @@ def main() -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='footer'>Made with AI • Glassmorphism dashboard</div>", unsafe_allow_html=True)
-
 
 
 if __name__ == "__main__":
