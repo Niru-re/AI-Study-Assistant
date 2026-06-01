@@ -1,0 +1,48 @@
+You are an expert study tutor. Create 10 effective flashcards from the following study notes. Each flashcard should test one key concept.
+
+Provide the output in the following format exactly:
+
+Flashcard 1:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 2:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 3:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 4:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 5:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 6:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 7:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 8:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 9:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Flashcard 10:
+Front: [Question/Concept]
+Back: [Answer/Explanation]
+
+Study Notes:
+{notes}
+
+Make front sides concise questions/concepts and back sides clear, detailed answers. Ensure variety in the types of questions.

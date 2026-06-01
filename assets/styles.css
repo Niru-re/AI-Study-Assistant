@@ -1,0 +1,316 @@
+:root {
+  --bg: #070b17;
+  --bg-alt: rgba(10, 15, 28, 0.96);
+  --card: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --shadow: 0 32px 120px rgba(0, 0, 0, 0.42);
+  --text: #edf2ff;
+  --muted: rgba(237, 242, 255, 0.68);
+  --primary: #a15cff;
+  --secondary: #0fb8f4;
+  --accent: #7b61ff;
+  --success: #24d8c1;
+  --warning: #f6d554;
+}
+
+html, body, [class*="css"] {
+  background: radial-gradient(circle at top left, rgba(138, 92, 246, 0.16), transparent 24%),
+              radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.14), transparent 18%),
+              linear-gradient(180deg, #06102a 0%, #070b17 100%) !important;
+  color: var(--text) !important;
+}
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.stApp {
+  min-height: 100vh;
+}
+
+.page-shell {
+  padding: 28px 32px 24px;
+  max-width: 1420px;
+  margin: 0 auto;
+}
+
+.glass-panel {
+  position: relative;
+  padding: 28px;
+  border-radius: 32px;
+  background: rgba(15, 22, 48, 0.62);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(25px);
+  overflow: hidden;
+}
+
+.hero-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.hero-panel h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 2.3vw, 3.4rem);
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+}
+
+.hero-panel p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  max-width: 640px;
+  font-size: 1rem;
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  font-size: 0.95rem;
+  box-shadow: 0 18px 50px rgba(12, 20, 45, 0.22);
+}
+
+.hero-pill span {
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.section-header {
+  margin: 24px 0 14px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.section-header p {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.glass-card,
+.sidebar-panel,
+.sidebar-status,
+.footer {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(25px);
+}
+
+.glass-card {
+  padding: 24px;
+  margin-bottom: 22px;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.sidebar-panel {
+  padding: 18px 16px;
+  margin-bottom: 16px;
+}
+
+.sidebar-brand {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sidebar-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(124, 82, 255, 0.34), rgba(47, 93, 255, 0.18));
+  color: white;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.sidebar-brand h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.sidebar-brand p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.sidebar-status {
+  margin-top: 14px;
+  padding: 14px 18px;
+  font-weight: 600;
+}
+
+.sidebar-status.success {
+  color: var(--success);
+}
+
+.sidebar-status.warning {
+  color: var(--warning);
+}
+
+.sidebar-meta {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.stRadio > div,
+.stSelectbox > div,
+.stTextArea > div,
+.stButton > button {
+  border-radius: 20px !important;
+}
+
+textarea,
+input,
+button {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+textarea {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(20px);
+}
+
+textarea::placeholder {
+  color: rgba(237, 242, 255, 0.36) !important;
+}
+
+.stButton > button {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.85), rgba(6, 182, 212, 0.88)) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 18px 45px rgba(94, 48, 209, 0.26) !important;
+  padding: 14px 22px !important;
+}
+
+.stButton > button:hover {
+  transform: translateY(-2px);
+}
+
+.stMarkdown h1,
+.stMarkdown h2,
+.stMarkdown h3,
+.stMarkdown p {
+  color: var(--text) !important;
+}
+
+.stTextInput > div > input,
+.stTextArea > div > textarea {
+  color: var(--text) !important;
+}
+
+.stTextInput > div > input,
+.stTextArea > div > textarea,
+.stSelectbox > div > div {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+.result-panel {
+  margin-top: 20px;
+}
+
+.flashcard-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px;
+  padding: 18px;
+  backdrop-filter: blur(20px);
+  margin-bottom: 18px;
+}
+
+.flashcard-card h4 {
+  margin: 0 0 10px;
+}
+
+.footer {
+  margin: 32px auto 0;
+  padding: 18px 24px;
+  max-width: 880px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.orb-one {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.45), transparent 58%);
+  animation: floatSlow 12s ease-in-out infinite;
+}
+
+.orb-two {
+  width: 340px;
+  height: 340px;
+  right: -100px;
+  bottom: -100px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.36), transparent 54%);
+  animation: floatSlow 14s ease-in-out infinite;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-22px) translateX(12px); }
+}
+
+@media (max-width: 960px) {
+  .hero-panel {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .glass-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    padding: 18px 16px 12px;
+  }
+
+  .sidebar-brand {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .sidebar-icon {
+    margin: 0 auto;
+  }
+}

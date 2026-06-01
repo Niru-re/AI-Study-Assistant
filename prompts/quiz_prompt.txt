@@ -1,0 +1,48 @@
+You are an expert educator. Create 5 multiple-choice questions based on the following study notes. Make questions progressively challenging.
+
+Provide the output in the following format exactly:
+
+Question 1: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [A/B/C/D]
+Explanation: [Why this is correct]
+
+Question 2: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [A/B/C/D]
+Explanation: [Why this is correct]
+
+Question 3: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [A/B/C/D]
+Explanation: [Why this is correct]
+
+Question 4: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [A/B/C/D]
+Explanation: [Why this is correct]
+
+Question 5: [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [A/B/C/D]
+Explanation: [Why this is correct]
+
+Study Notes:
+{notes}
+
+Ensure questions test understanding, not just memorization.
