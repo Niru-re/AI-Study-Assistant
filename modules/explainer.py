@@ -5,7 +5,7 @@ This module provides functionality to explain topics comprehensively.
 """
 
 from typing import Dict, Any
-from utils.ollama_client import OllamaClient
+from utils.llm_factory import BaseLLMClient
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,16 +16,16 @@ class Explainer:
     A class to explain topics using LLM.
     
     Attributes:
-        client (OllamaClient): The Ollama client for API calls
+        client (BaseLLMClient): The LLM client for API calls
         prompt_template (str): The prompt template for explanations
     """
     
-    def __init__(self, client: OllamaClient, prompt_template: str) -> None:
+    def __init__(self, client: BaseLLMClient, prompt_template: str) -> None:
         """
         Initialize the Explainer.
         
         Args:
-            client: OllamaClient instance for API calls
+            client: BaseLLMClient instance for API calls
             prompt_template: Template for the explanation prompt
         """
         self.client = client
@@ -42,7 +42,7 @@ class Explainer:
             Dictionary containing definition, concepts, examples, points, and applications
         
         Raises:
-            Exception: If explanation fails
+            Exception: If explanation fails (e.g. Gemini API error)
         """
         if not topic or topic.strip() == "":
             raise ValueError("Topic cannot be empty")
@@ -51,11 +51,11 @@ class Explainer:
             # Format prompt with topic
             prompt = self.prompt_template.format(topic=topic)
             
-            logger.info(f"Starting explanation for topic: {topic}")
-            response = self.client.generate(prompt, temperature=0.6)
+            logger.info(f"Starting Gemini explanation for topic: {topic}")
+            response = self.client.generate(prompt, temperature=0.7)
             
             if not response:
-                raise Exception("No response from model")
+                raise Exception("Gemini returned an empty response for the explanation")
             
             # Parse response
             result = self._parse_response(response)
@@ -63,7 +63,10 @@ class Explainer:
             return result
         
         except Exception as e:
-            logger.error(f"Explanation failed: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Explanation failed: {error_msg}")
+            if "Gemini" in error_msg:
+                raise Exception(f"Gemini Explanation Error: {error_msg}")
             raise
     
     def _parse_response(self, response: str) -> Dict[str, Any]:

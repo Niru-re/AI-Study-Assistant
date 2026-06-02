@@ -1,16 +1,13 @@
 """
 LLM Factory Module
 
-Provides a unified interface for multiple LLM backends:
-- Local Ollama
-- Groq
-- OpenAI
-- Anthropic
+Provides a unified interface for Google Gemini API.
 """
 
 import os
 from typing import Optional
 import logging
+import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -22,167 +19,93 @@ class BaseLLMClient:
         """Generate text from a prompt."""
         raise NotImplementedError
 
+    def health_check(self) -> dict:
+        """Check if the LLM provider is accessible."""
+        raise NotImplementedError
 
-class OllamaClient(BaseLLMClient):
-    """Local Ollama client."""
 
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "mistral:latest", timeout: int = 300):
-        import requests
-        self.base_url = base_url.rstrip("/")
+class GeminiClient(BaseLLMClient):
+    """Google Gemini API client."""
+
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
+        import google.generativeai as genai
+        self.api_key = api_key
         self.model = model
-        self.timeout = timeout
-        self.requests = requests
+        genai.configure(api_key=api_key)
+        self.client = genai
+        self.model_instance = genai.GenerativeModel(model)
 
     def generate(self, prompt: str, temperature: float = 0.7, top_p: float = 0.9) -> str:
-        """Generate text using Ollama."""
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "temperature": temperature,
-            "top_p": top_p,
-        }
-
+        """Generate text using Google Gemini."""
         try:
-            url = f"{self.base_url}/api/generate"
-            resp = self.requests.post(url, json=payload, timeout=self.timeout)
-            if resp.status_code == 200:
-                data = resp.json()
-                if "response" in data:
-                    return data["response"].strip()
-            raise Exception(f"Ollama error: {resp.status_code}")
-        except Exception as e:
-            raise Exception(f"Ollama error: {str(e)}")
-
-    def health_check(self):
-        """Check if Ollama is running."""
-        try:
-            resp = self.requests.get(self.base_url, timeout=5)
-            return {"status": "ok", "url": self.base_url}
-        except Exception as e:
-            return {"status": "error", "url": self.base_url, "error": str(e)}
-
-
-class GroqClient(BaseLLMClient):
-    """Groq LLM client (free, fast inference)."""
-
-    def __init__(self, api_key: str, model: str = "mixtral-8x7b-32768"):
-        from groq import Groq
-        self.client = Groq(api_key=api_key)
-        self.model = model
-
-    def generate(self, prompt: str, temperature: float = 0.7, top_p: float = 0.9) -> str:
-        """Generate text using Groq."""
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                top_p=top_p,
+            response = self.model_instance.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": temperature,
+                    "top_p": top_p,
+                    "max_output_tokens": 4096,
+                }
             )
-            return response.choices[0].message.content.strip()
+            
+            if not response:
+                raise Exception("Empty response from Gemini API")
+                
+            if response.text:
+                return response.text.strip()
+            
+            # Handle potential safety filters or other reasons for no text
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if candidate.finish_reason != 1: # 1 is STOP
+                    raise Exception(f"Gemini generation finished with reason: {candidate.finish_reason}")
+            
+            raise Exception("No response text received from Gemini")
+            
         except Exception as e:
-            raise Exception(f"Groq error: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Gemini API error: {error_msg}")
+            
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                raise Exception("Gemini API authentication error: Please check your GEMINI_API_KEY in Streamlit secrets.")
+            elif "quota" in error_msg.lower() or "429" in error_msg:
+                raise Exception("Gemini API quota exceeded: Please try again later or check your usage limits.")
+            elif "model not found" in error_msg.lower():
+                raise Exception(f"Gemini model '{self.model}' not found. Please check the model name.")
+            else:
+                raise Exception(f"Gemini API error: {error_msg}")
 
-    def health_check(self):
-        """Check if Groq API is accessible."""
-        return {"status": "ok", "provider": "groq", "model": self.model}
-
-
-class OpenAIClient(BaseLLMClient):
-    """OpenAI LLM client."""
-
-    def __init__(self, api_key: str, model: str = "gpt-4-turbo"):
-        from openai import OpenAI
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
-
-    def generate(self, prompt: str, temperature: float = 0.7, top_p: float = 0.9) -> str:
-        """Generate text using OpenAI."""
+    def health_check(self) -> dict:
+        """Check if Gemini API is accessible."""
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                top_p=top_p,
-            )
-            return response.choices[0].message.content.strip()
+            # Simple test with minimal prompt
+            response = self.model_instance.generate_content("Ping", generation_config={"max_output_tokens": 5})
+            if response.text:
+                return {"status": "ok", "provider": "gemini", "model": self.model}
         except Exception as e:
-            raise Exception(f"OpenAI error: {str(e)}")
-
-    def health_check(self):
-        """Check if OpenAI API is accessible."""
-        return {"status": "ok", "provider": "openai", "model": self.model}
-
-
-class AnthropicClient(BaseLLMClient):
-    """Anthropic Claude LLM client."""
-
-    def __init__(self, api_key: str, model: str = "claude-3-sonnet-20240229"):
-        import anthropic
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.model = model
-
-    def generate(self, prompt: str, temperature: float = 0.7, top_p: float = 0.9) -> str:
-        """Generate text using Anthropic."""
-        try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=2048,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-            )
-            return response.content[0].text.strip()
-        except Exception as e:
-            raise Exception(f"Anthropic error: {str(e)}")
-
-    def health_check(self):
-        """Check if Anthropic API is accessible."""
-        return {"status": "ok", "provider": "anthropic", "model": self.model}
+            return {"status": "error", "provider": "gemini", "model": self.model, "error": str(e)}
+        return {"status": "error", "provider": "gemini", "model": self.model}
 
 
 def get_llm_client() -> Optional[BaseLLMClient]:
-    """Factory function to get the configured LLM client."""
+    """Factory function to get the Gemini LLM client."""
 
-    provider = os.environ.get("LLM_PROVIDER", "ollama").lower()
-
+    # Try to get API key from Streamlit secrets first, then environment variables
     try:
-        if provider == "ollama":
-            base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-            model = os.environ.get("OLLAMA_MODEL", "mistral:latest")
-            return OllamaClient(base_url=base_url, model=model)
+        api_key = st.secrets.get("GEMINI_API_KEY")
+    except:
+        api_key = os.environ.get("GEMINI_API_KEY")
+    
+    if not api_key:
+        logger.error("GEMINI_API_KEY not configured")
+        return None
 
-        elif provider == "groq":
-            api_key = os.environ.get("GROQ_API_KEY")
-            if not api_key:
-                logger.error("GROQ_API_KEY not configured")
-                return None
-            model = os.environ.get("GROQ_MODEL", "mixtral-8x7b-32768")
-            return GroqClient(api_key=api_key, model=model)
-
-        elif provider == "openai":
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                logger.error("OPENAI_API_KEY not configured")
-                return None
-            model = os.environ.get("OPENAI_MODEL", "gpt-4-turbo")
-            return OpenAIClient(api_key=api_key, model=model)
-
-        elif provider == "anthropic":
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not api_key:
-                logger.error("ANTHROPIC_API_KEY not configured")
-                return None
-            model = os.environ.get("ANTHROPIC_MODEL", "claude-3-sonnet-20240229")
-            return AnthropicClient(api_key=api_key, model=model)
-
-        else:
-            logger.error(f"Unknown LLM_PROVIDER: {provider}")
-            return None
-
-    except ImportError as e:
-        logger.error(f"Missing dependency for {provider}: {str(e)}")
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    
+    try:
+        return GeminiClient(api_key=api_key, model=model)
+    except ImportError:
+        logger.error("Missing dependency: google-generativeai. Run 'pip install google-generativeai'")
         return None
     except Exception as e:
-        logger.error(f"Error initializing LLM client: {str(e)}")
+        logger.error(f"Error initializing Gemini client: {str(e)}")
         return None

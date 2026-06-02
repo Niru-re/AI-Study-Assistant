@@ -2,6 +2,6 @@
 Utils package for AI Study Assistant
 """
 
-from .ollama_client import OllamaClient
+from .llm_factory import get_llm_client, BaseLLMClient, GeminiClient
 
-__all__ = ["OllamaClient"]
+__all__ = ["get_llm_client", "BaseLLMClient", "GeminiClient"]

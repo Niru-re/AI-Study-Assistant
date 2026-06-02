@@ -5,7 +5,7 @@ This module generates multiple-choice quizzes from study notes.
 """
 
 from typing import Dict, List, Any
-from utils.ollama_client import OllamaClient
+from utils.llm_factory import BaseLLMClient
 import logging
 import re
 
@@ -17,16 +17,16 @@ class QuizGenerator:
     A class to generate multiple-choice quizzes from study notes.
     
     Attributes:
-        client (OllamaClient): The Ollama client for API calls
+        client (BaseLLMClient): The LLM client for API calls
         prompt_template (str): The prompt template for quiz generation
     """
     
-    def __init__(self, client: OllamaClient, prompt_template: str) -> None:
+    def __init__(self, client: BaseLLMClient, prompt_template: str) -> None:
         """
         Initialize the QuizGenerator.
         
         Args:
-            client: OllamaClient instance for API calls
+            client: BaseLLMClient instance for API calls
             prompt_template: Template for the quiz prompt
         """
         self.client = client
@@ -43,7 +43,7 @@ class QuizGenerator:
             List of quiz questions with options and answers
         
         Raises:
-            Exception: If quiz generation fails
+            Exception: If quiz generation fails (e.g. Gemini API error)
         """
         if not notes or notes.strip() == "":
             raise ValueError("Notes cannot be empty")
@@ -52,19 +52,29 @@ class QuizGenerator:
             # Format prompt with notes
             prompt = self.prompt_template.format(notes=notes)
             
-            logger.info("Starting quiz generation")
-            response = self.client.generate(prompt, temperature=0.7)
+            logger.info("Starting Gemini quiz generation")
+            # Using slightly higher temperature for variety in questions
+            response = self.client.generate(prompt, temperature=0.75)
             
             if not response:
-                raise Exception("No response from model")
+                raise Exception("Gemini returned an empty response for the quiz")
             
             # Parse response
             questions = self._parse_questions(response)
-            logger.info(f"Generated {len(questions)} questions")
+            
+            if not questions:
+                logger.warning("No questions could be parsed from Gemini response")
+                return self._fallback_parse(response)
+                
+            logger.info(f"Generated {len(questions)} questions successfully")
             return questions
         
         except Exception as e:
-            logger.error(f"Quiz generation failed: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Quiz generation failed: {error_msg}")
+            # Re-raise with a bit more context if it's a Gemini error
+            if "Gemini" in error_msg:
+                raise Exception(f"Gemini Quiz Error: {error_msg}")
             raise
     
     def _parse_questions(self, response: str) -> List[Dict[str, Any]]:

@@ -5,7 +5,7 @@ This module generates flashcards from study notes for active learning.
 """
 
 from typing import Dict, List, Any
-from utils.ollama_client import OllamaClient
+from utils.llm_factory import BaseLLMClient
 import logging
 import re
 
@@ -17,16 +17,16 @@ class FlashcardGenerator:
     A class to generate flashcards from study notes.
     
     Attributes:
-        client (OllamaClient): The Ollama client for API calls
+        client (BaseLLMClient): The LLM client for API calls
         prompt_template (str): The prompt template for flashcard generation
     """
     
-    def __init__(self, client: OllamaClient, prompt_template: str) -> None:
+    def __init__(self, client: BaseLLMClient, prompt_template: str) -> None:
         """
         Initialize the FlashcardGenerator.
         
         Args:
-            client: OllamaClient instance for API calls
+            client: BaseLLMClient instance for API calls
             prompt_template: Template for the flashcard prompt
         """
         self.client = client
@@ -43,7 +43,7 @@ class FlashcardGenerator:
             List of flashcards with front and back content
         
         Raises:
-            Exception: If flashcard generation fails
+            Exception: If flashcard generation fails (e.g. Gemini API error)
         """
         if not notes or notes.strip() == "":
             raise ValueError("Notes cannot be empty")
@@ -52,19 +52,27 @@ class FlashcardGenerator:
             # Format prompt with notes
             prompt = self.prompt_template.format(notes=notes)
             
-            logger.info("Starting flashcard generation")
-            response = self.client.generate(prompt, temperature=0.6)
+            logger.info("Starting Gemini flashcard generation")
+            response = self.client.generate(prompt, temperature=0.65)
             
             if not response:
-                raise Exception("No response from model")
+                raise Exception("Gemini returned an empty response for flashcards")
             
             # Parse response
-            flashcards = self._parse_flashcards(response)
-            logger.info(f"Generated {len(flashcards)} flashcards")
+            flashcards = flashcards = self._parse_flashcards(response)
+            
+            if not flashcards:
+                logger.warning("No flashcards could be parsed from Gemini response")
+                return self._fallback_parse()
+                
+            logger.info(f"Generated {len(flashcards)} flashcards successfully")
             return flashcards
         
         except Exception as e:
-            logger.error(f"Flashcard generation failed: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Flashcard generation failed: {error_msg}")
+            if "Gemini" in error_msg:
+                raise Exception(f"Gemini Flashcard Error: {error_msg}")
             raise
     
     def _parse_flashcards(self, response: str) -> List[Dict[str, str]]:

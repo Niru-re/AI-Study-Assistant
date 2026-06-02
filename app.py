@@ -1,7 +1,7 @@
 """
 AI Study Assistant Main Application
 
-A Streamlit-based application that uses Ollama and Mistral to help students
+A Streamlit-based application that uses Google Gemini to help students
 with note summarization, quiz generation, flashcard creation, and topic explanation.
 """
 
@@ -10,7 +10,6 @@ import streamlit as st
 from pathlib import Path
 import logging
 from typing import Optional
-from utils.llm_factory import BaseLLMClient
 import sys
 
 # Add project root to path
@@ -78,23 +77,18 @@ def check_llm_connection() -> dict:
     if client is None:
         return {
             "ok": False,
-            "error": "No LLM provider configured. Please set up Streamlit secrets or environment variables.",
-            "provider": None,
+            "error": "Google Gemini API key not configured. Please set up Streamlit secrets or environment variables.",
+            "provider": "Gemini",
         }
     try:
         results = client.health_check()
-        # For Ollama, check if generate test passed
-        if "generate" in results:
-            if "error" in results["generate"]:
-                return {
-                    "ok": False,
-                    "error": f"Ollama generation test failed: {results['generate']['error']}",
-                    "provider": "ollama",
-                    "results": results,
-                }
-        return {"ok": True, "results": results, "provider": os.environ.get("LLM_PROVIDER", "ollama")}
+        if results.get("status") == "ok":
+            return {"ok": True, "results": results, "provider": "Gemini"}
+        else:
+            error = results.get("error", "Unknown error")
+            return {"ok": False, "error": error, "provider": "Gemini", "results": results}
     except Exception as e:
-        return {"ok": False, "error": str(e), "provider": os.environ.get("LLM_PROVIDER", "ollama")}
+        return {"ok": False, "error": str(e), "provider": "Gemini"}
 
 
 def display_summary_results(result: dict) -> None:
@@ -225,65 +219,35 @@ def display_explanation_results(result: dict) -> None:
 
 
 def show_setup_required() -> None:
-    """Show setup instructions when LLM is not configured."""
+    """Show setup instructions when Gemini is not configured."""
     st.markdown("<div class='glass-panel'>", unsafe_allow_html=True)
     st.markdown("""
     <div class='section-header'>
-      <h2>⚙️ Setup Required</h2>
-      <p class='muted'>No LLM provider configured. Please set up one of the following:</p>
+      <h2>⚙️ Google Gemini Setup Required</h2>
+      <p class='muted'>Please set up your Gemini API key to continue:</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### Option 1: Groq (Recommended - Free & Fast)")
     st.markdown("""
-    1. Go to https://console.groq.com/keys
-    2. Create a free account and get your API key
-    3. On Streamlit Cloud:
+    1. Go to **[Google AI Studio](https://aistudio.google.com/apikey)**
+    2. Create a free Google account if needed
+    3. Click **"Get API Key"** and create a new API key
+    4. **On Streamlit Cloud:**
        - Go to **Settings → Secrets**
        - Add:
+         ```toml
+         GEMINI_API_KEY = "your-api-key-here"
          ```
-         LLM_PROVIDER = "groq"
-         GROQ_API_KEY = "your-api-key"
-         GROQ_MODEL = "mixtral-8x7b-32768"
+    5. **On local development:**
+       - Create `.streamlit/secrets.toml` in your project root
+       - Add:
+         ```toml
+         GEMINI_API_KEY = "your-api-key-here"
          ```
-    4. Rerun the app
+    6. Rerun the app
+    
+    **Note:** Google Gemini offers a generous free tier with high rate limits and excellent performance for study assistance.
     """)
-
-    st.markdown("### Option 2: Local Ollama (Requires local deployment)")
-    st.markdown("""
-    1. Install Ollama: https://ollama.ai
-    2. Run: `ollama run mistral`
-    3. Set environment variables:
-       ```
-       LLM_PROVIDER=ollama
-       OLLAMA_BASE_URL=http://localhost:11434
-       OLLAMA_MODEL=mistral:latest
-       ```
-    4. Run locally: `streamlit run app.py`
-    """)
-
-    st.markdown("### Option 3: OpenAI")
-    st.markdown("""
-    1. Get API key from https://platform.openai.com/account/api-keys
-    2. Add to Streamlit Secrets:
-       ```
-       LLM_PROVIDER = "openai"
-       OPENAI_API_KEY = "your-api-key"
-       OPENAI_MODEL = "gpt-4-turbo"
-       ```
-    """)
-
-    st.markdown("### Option 4: Anthropic Claude")
-    st.markdown("""
-    1. Get API key from https://console.anthropic.com/
-    2. Add to Streamlit Secrets:
-       ```
-       LLM_PROVIDER = "anthropic"
-       ANTHROPIC_API_KEY = "your-api-key"
-       ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
-       ```
-    """)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -301,12 +265,12 @@ def main() -> None:
           <div class='sidebar-icon'>AI</div>
           <div>
             <h2>Study AI</h2>
-            <p class='muted'>Glassmorphism dashboard</p>
+            <p class='muted'>Gemini Powered</p>
           </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("<div class='sidebar-panel'>Optimized for notes, quizzes, flashcards, and topic breakdowns.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sidebar-panel'>Optimized for notes, quizzes, flashcards, and topic breakdowns using Google Gemini.</div>", unsafe_allow_html=True)
         st.markdown("---")
 
         feature = st.radio("", [
@@ -318,23 +282,20 @@ def main() -> None:
 
         st.markdown("---")
         conn = check_llm_connection()
-        provider = conn.get("provider", "unknown").upper()
         if conn.get("ok"):
-            st.write(f"<div class='sidebar-status success'>✓ {provider} Ready</div>", unsafe_allow_html=True)
+            st.write("<div class='sidebar-status success'>✓ Gemini Ready</div>", unsafe_allow_html=True)
         else:
-            st.write(f"<div class='sidebar-status warning'>✗ {provider} Not Ready</div>", unsafe_allow_html=True)
-            with st.expander("Debug info"):
-                error_msg = conn.get("error", "Unknown error")
-                st.error(error_msg)
-                if "Ollama" in error_msg.upper():
-                    st.info("💡 Ollama not running. Start it with: `ollama run mistral`")
+            st.write("<div class='sidebar-status warning'>✗ Gemini Not Ready</div>", unsafe_allow_html=True)
+            with st.expander("Setup Help"):
+                st.error(conn.get("error", "API Key missing"))
+                st.info("💡 Get a free API key at [aistudio.google.com](https://aistudio.google.com/apikey)")
 
-        st.markdown(f"<div class='sidebar-meta'>Provider: <strong>{provider}</strong></div>", unsafe_allow_html=True)
+        st.markdown("<div class='sidebar-meta'>Model: <strong>gemini-2.5-flash</strong></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='page-shell'>", unsafe_allow_html=True)
 
     st.markdown("<div class='glass-panel'>", unsafe_allow_html=True)
-    st.markdown("<div class='hero-panel'><div><h1>AI Study Assistant</h1><p class='muted'>Premium glassmorphism learning workspace with AI-powered study tools.</p></div><div class='hero-pill'>Live • <span>mistral:latest</span></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-panel'><div><h1>AI Study Assistant</h1><p class='muted'>Premium glassmorphism learning workspace powered by Google Gemini.</p></div><div class='hero-pill'>Live • <span>gemini-2.5-flash</span></div></div>", unsafe_allow_html=True)
 
     if feature == "Notes Summarizer":
         if client is None:
@@ -353,7 +314,7 @@ def main() -> None:
                         result = summarizer.summarize(notes_input)
                         display_summary_results(result)
                     except Exception as e:
-                        st.error(str(e))
+                        st.error(f"Error: {str(e)}")
 
     elif feature == "Quiz Generator":
         if client is None:
@@ -372,7 +333,7 @@ def main() -> None:
                         questions = quiz_gen.generate_quiz(notes_input)
                         display_quiz_results(questions)
                     except Exception as e:
-                        st.error(str(e))
+                        st.error(f"Error: {str(e)}")
 
     elif feature == "Flashcard Generator":
         if client is None:
@@ -391,7 +352,7 @@ def main() -> None:
                         flashcards = fc_gen.generate_flashcards(notes_input)
                         display_flashcards(flashcards)
                     except Exception as e:
-                        st.error(str(e))
+                        st.error(f"Error: {str(e)}")
 
     elif feature == "Topic Explainer":
         if client is None:
@@ -410,12 +371,12 @@ def main() -> None:
                         result = explainer.explain(topic_input)
                         display_explanation_results(result)
                     except Exception as e:
-                        st.error(str(e))
+                        st.error(f"Error: {str(e)}")
 
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='footer'>Made with AI • Glassmorphism dashboard</div>", unsafe_allow_html=True)
+    st.markdown("<div class='footer'>Made with Google Gemini • AI Study Assistant</div>", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

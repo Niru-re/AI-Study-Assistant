@@ -1,8 +1,8 @@
 # AI Study Assistant
 
-**A smart learning companion powered by AI!** 📚✨
+**A smart learning companion powered by Google Gemini!** 📚✨
 
-An intelligent study assistant built with Streamlit and Ollama that helps students learn effectively through summarization, quiz generation, flashcards, and topic explanations.
+An intelligent study assistant built with Streamlit and Google Gemini that helps students learn effectively through summarization, quiz generation, flashcards, and topic explanations.
 
 ---
 
@@ -15,13 +15,13 @@ An intelligent study assistant built with Streamlit and Ollama that helps studen
 - Perfect for exam preparation
 
 ### ❓ **Quiz Generator**
-- Generate 5 challenging multiple-choice questions
+- Generate challenging multiple-choice questions
 - Test your understanding of topics
 - Get explanations for each answer
-- Adaptive difficulty levels
+- Powered by high-quality AI models
 
 ### 🎴 **Flashcard Generator**
-- Create 10+ interactive flashcards
+- Create interactive flashcards
 - Effective for active recall learning
 - Question-answer format
 - Perfect for memorization and retention
@@ -39,32 +39,17 @@ An intelligent study assistant built with Streamlit and Ollama that helps studen
 ### Prerequisites
 
 - **Python 3.11+**
-- **Ollama** (LLM runtime)
-- **Mistral Model** (or any Ollama-compatible model)
+- **Google Gemini API Key** (Free from [Google AI Studio](https://aistudio.google.com/apikey))
 
 ### Installation
 
-#### 1. Install Ollama
+#### 1. Get Google Gemini API Key
 
-Download and install Ollama from: https://ollama.ai
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+2. Create a free API key
+3. Copy the key for the next steps
 
-#### 2. Pull Mistral Model
-
-Open your terminal and run:
-
-```bash
-ollama pull mistral
-```
-
-#### 3. Start Ollama Server
-
-```bash
-ollama serve
-```
-
-Keep this terminal running. The server will start on `http://localhost:11434`
-
-#### 4. Set Up the Application
+#### 2. Set Up the Application
 
 Clone or download this project, then:
 
@@ -85,6 +70,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+#### 3. Configure API Key
+
+Create a `.streamlit/secrets.toml` file in the project root:
+
+```toml
+GEMINI_API_KEY = "your-api-key-here"
+```
+
+Alternatively, set an environment variable:
+```bash
+export GEMINI_API_KEY="your-api-key-here"
+```
+
 ### Running the Application
 
 ```bash
@@ -99,19 +97,10 @@ The application will open in your browser at `http://localhost:8501`
 
 ### 1. **Using the Summarizer**
 
-1. Select "📝 Summarizer" from the sidebar
+1. Select "📝 Notes Summarizer" from the sidebar
 2. Paste your study notes in the text area
 3. Click "✨ Generate Summary"
 4. View the summary, key points, and important concepts
-
-**Example:**
-```
-Input: Long chapter notes on photosynthesis
-Output: 
-  - Summary of the process
-  - Key points about light and dark reactions
-  - Important concepts like chlorophyll, ATP, etc.
-```
 
 ### 2. **Using the Quiz Generator**
 
@@ -121,49 +110,19 @@ Output:
 4. Review questions with multiple options
 5. Check the correct answer and explanation
 
-**Output Format:**
-```
-Question 1: Which organelle is responsible for photosynthesis?
-A) Mitochondria
-B) Chloroplast
-C) Nucleus
-D) Ribosome
-
-Correct Answer: B
-Explanation: Chloroplasts contain chlorophyll...
-```
-
 ### 3. **Using Flashcard Generator**
 
 1. Select "🎴 Flashcard Generator" from the sidebar
 2. Paste your study notes
 3. Click "🚀 Generate Flashcards"
-4. Click on "📖 Answer" to reveal the back of each card
-5. Study the cards repeatedly for better retention
-
-**Card Format:**
-```
-Front: What is photosynthesis?
-Back: The process by which plants convert light energy into chemical energy...
-```
+4. Click on "📖 Show answer" to reveal the back of each card
 
 ### 4. **Using Topic Explainer**
 
 1. Select "🎓 Topic Explainer" from the sidebar
 2. Enter any topic you want to learn about
 3. Click "💡 Explain Topic"
-4. Get comprehensive explanation with:
-   - Clear definition
-   - Key concepts
-   - Examples
-   - Important points
-   - Real-world applications
-
-**Example:**
-```
-Input: "Newton's Laws of Motion"
-Output: Complete explanation with examples and applications
-```
+4. Get a comprehensive explanation with definition, concepts, examples, and real-world applications
 
 ---
 
@@ -177,7 +136,6 @@ AI-Study-Assistant/
 ├── README.md                       # This file
 │
 ├── modules/
-│   ├── __init__.py                # Module initialization
 │   ├── summarizer.py              # Notes summarization logic
 │   ├── quiz_generator.py          # Quiz generation logic
 │   ├── flashcard_generator.py     # Flashcard generation logic
@@ -190,191 +148,14 @@ AI-Study-Assistant/
 │   └── explain_prompt.txt         # Prompt for topic explanation
 │
 └── utils/
-    └── ollama_client.py           # Ollama API client
+    ├── llm_factory.py             # LLM Factory for Gemini
+    └── __init__.py                # Utils package init
 ```
 
 ---
 
 ## ⚙️ Configuration
 
-### Ollama Settings
+The application uses **Gemini 2.5 Flash** by default for fast and accurate responses. You can change the model by setting the `GEMINI_MODEL` environment variable.
 
-The application connects to Ollama on `http://localhost:11434` by default.
-
-To change the settings, edit the `app.py` file:
-
-```python
-client = OllamaClient(
-    base_url="http://localhost:11434",  # Change if needed
-    model="mistral",                      # Change model name
-    timeout=120                           # Adjust timeout (seconds)
-)
-```
-
-### Supported Models
-
-While the project uses Mistral by default, you can use any Ollama-compatible model:
-
-```bash
-# Other popular models:
-ollama pull llama2
-ollama pull neural-chat
-ollama pull dolphin-mixtral
-```
-
----
-
-## 🔧 How It Works
-
-### Architecture
-
-```
-User Input (Streamlit UI)
-        ↓
-    Prompt Template
-        ↓
-    Ollama Client
-        ↓
-    Mistral LLM
-        ↓
-    Response Parser
-        ↓
-    Formatted Output
-```
-
-### Key Components
-
-1. **OllamaClient** (`utils/ollama_client.py`)
-   - Manages API communication with Ollama
-   - Handles errors and timeouts
-   - Supports temperature and sampling parameters
-
-2. **Modules** (`modules/`)
-   - **Summarizer**: Extracts key information from notes
-   - **QuizGenerator**: Creates questions with multiple options
-   - **FlashcardGenerator**: Generates flashcards for learning
-   - **Explainer**: Provides comprehensive topic explanations
-
-3. **Prompts** (`prompts/`)
-   - Carefully crafted templates to guide the LLM
-   - Structured output formats
-   - Educational focus
-
----
-
-## 🐛 Troubleshooting
-
-### "Cannot connect to Ollama"
-
-**Solution:**
-1. Ensure Ollama is installed: https://ollama.ai
-2. Run `ollama serve` in a terminal
-3. Check if Mistral is pulled: `ollama list`
-4. If not, run: `ollama pull mistral`
-
-### "Request timeout"
-
-**Solution:**
-- The model is taking too long to respond
-- Increase timeout in `app.py`: `timeout=300`
-- Ensure your system has enough RAM
-- Try with a smaller model
-
-### "No response from model"
-
-**Solution:**
-- Check Ollama server is running
-- Verify the model name is correct
-- Check your internet connection (if using remote Ollama)
-
-### Slow Response Times
-
-**Solution:**
-- Increase your system RAM
-- Use a GPU for faster processing (check Ollama GPU docs)
-- Try a smaller model like `neural-chat`
-
----
-
-## 📊 Performance Tips
-
-1. **Use GPU Acceleration**
-   - Ollama supports GPU acceleration on NVIDIA, AMD, and Apple Silicon
-   - Check: https://ollama.ai/docs#gpu
-
-2. **Optimize System Resources**
-   - Close unnecessary applications
-   - Allocate more RAM if possible
-   - Use SSD for better performance
-
-3. **Experiment with Models**
-   - Smaller models (neural-chat, dolphin) are faster
-   - Larger models (mistral, llama2) are more accurate
-
----
-
-## 🔮 Future Enhancements (Version 2 & 3)
-
-### Version 2.0
-- 📄 PDF file upload support
-- 📥 PDF text extraction
-- 💾 Save and load study notes
-- 📥 Download results (PDF, CSV, JSON)
-
-### Version 3.0
-- 🧠 RAG (Retrieval Augmented Generation)
-- 🔍 Semantic search across notes
-- 💬 Chat with your notes
-- 📈 Study progress tracking
-- 🎯 Personalized learning recommendations
-
----
-
-## 📝 Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
-- Improve documentation
-
----
-
-## 📄 License
-
-This project is open source and available for educational purposes.
-
----
-
-## 🙏 Acknowledgments
-
-- **Ollama** - Local LLM infrastructure
-- **Mistral** - Powerful open-source LLM
-- **Streamlit** - Easy-to-use web framework
-- **Python Community** - Excellent tools and libraries
-
----
-
-## 📞 Support
-
-For issues, questions, or suggestions:
-1. Check the **Troubleshooting** section
-2. Review **Ollama documentation**: https://ollama.ai/docs
-3. Check Streamlit docs: https://docs.streamlit.io
-
----
-
-## 🎯 Tips for Effective Learning
-
-1. **Use Summarizer First** - Get an overview of the material
-2. **Test with Quizzes** - Identify weak areas
-3. **Study with Flashcards** - Build long-term memory
-4. **Use Explainer for Concepts** - Deep understanding
-5. **Review Regularly** - Spaced repetition for retention
-
----
-
-**Happy Learning! 🚀📚**
-
-Last Updated: June 2026
-Version: 1.0
+Made with Google Gemini • AI Study Assistant
